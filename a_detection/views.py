@@ -1,14 +1,11 @@
-from django.shortcuts import render
-
-# Create your views here.
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-import json
-import joblib
+import json, joblib, os
 import numpy as np
-import os
-from custom_logistic import CustomLogisticRegression
+from django.contrib.auth.decorators import login_required
+from .models import NewsArticle
+
 # Custom stopwords for more relevant keywords
 CUSTOM_STOPWORDS = set([
     'said', 'will', 'one', 'two', 'new', 'also', 'can', 'may', 'like', 'just', 'get', 'make', 'time', 'year', 'years', 'day', 'days', 'week', 'weeks', 'month', 'months',
@@ -31,6 +28,8 @@ def home_view(request):
 
 @csrf_exempt
 def predict_fake_news(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error":"unauthenticated"},status=401)
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -45,6 +44,12 @@ def predict_fake_news(request):
                 'prediction': 'real' if pred == 1 else 'fake',
                 'confidence': confidence
             }
+            NewsArticle.objects.create(
+                title = title,
+                content = body,
+                result = "REAL" if pred ==1 else "FAKE",
+                confidence_score = confidence,
+            )
             # Feature importance: get top words for the predicted class
             feature_names = np.array(vectorizer.get_feature_names_out())
             coefs = model.coef_[0]
@@ -71,6 +76,6 @@ def predict_fake_news(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     else:
-        return JsonResponse({'error': 'POST request required.'}, status=405)
+        return redirect("/")
 
 # Create your views here.

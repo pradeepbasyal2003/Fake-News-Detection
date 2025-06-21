@@ -13,6 +13,10 @@ document.getElementById('newsForm').addEventListener('submit', async function(e)
             },
             body: JSON.stringify({ title, body })
         });
+        if (response.status === 401) {
+            window.location.href = '/accounts/login/';
+            return;
+        }
         const data = await response.json();
         if (data.prediction) {
             let html = `<b>Result:</b> ${data.prediction.toUpperCase()}<br><b>Confidence:</b> ${(data.confidence*100).toFixed(2)}%`;
