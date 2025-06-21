@@ -19,8 +19,13 @@ document.getElementById('newsForm').addEventListener('submit', async function(e)
         }
         const data = await response.json();
         if (data.prediction) {
-            let html = `<b>Result:</b> ${data.prediction.toUpperCase()}<br><b>Confidence:</b> ${(data.confidence*100).toFixed(2)}%`;
-            if (data.keywords && data.keywords.length > 0) {
+            const confidencePercent = data.confidence * 100;
+            const certainty = confidencePercent > 70 ? 'Probably' : 'Might be';
+            let html = `<b>Result:</b> ${certainty} ${data.prediction.toUpperCase()}<br><b>Confidence:</b> ${confidencePercent.toFixed(2)}%`;
+            if (data.similarity) {
+                html += `<br><b>Title-Body Similarity:</b> ${data.similarity}`;
+            }
+            if (confidencePercent > 70 && data.keywords && data.keywords.length > 0) {
                 html += `<br><b>Top Contributing words for result:</b> <span style='color:#d9534f'>${data.keywords.join(', ')}</span>`;
             }
             resultDiv.innerHTML = html;

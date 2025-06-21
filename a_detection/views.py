@@ -11,6 +11,7 @@ from nltk.tokenize import word_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 import string
+from .utils import preprocess_text
 
 # Custom stopwords for more relevant keywords
 CUSTOM_STOPWORDS = set([
@@ -34,12 +35,6 @@ model = joblib.load(MODEL_PATH)
 vectorizer = joblib.load(VECTORIZER_PATH)
 word2vec_model = gensim.models.Word2Vec.load(WORD2VEC_PATH)
 explainer_model = joblib.load(EXPLAINER_MODEL_PATH)
-
-def preprocess_text(text):
-    """Tokenize, lowercase, remove punctuation and stopwords."""
-    stop_words = set(stopwords.words('english'))
-    tokens = word_tokenize(text.lower())
-    return [token for token in tokens if token.isalpha() and token not in stop_words]
 
 def document_vector(doc, model):
     """Create a document vector by averaging word vectors."""

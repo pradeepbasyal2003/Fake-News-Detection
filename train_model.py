@@ -12,6 +12,7 @@ import numpy as np
 import warnings
 from nltk.corpus import stopwords
 import string
+from a_detection.utils import preprocess_text
 
 # Explanation: Download NLTK resources if not already present.
 for resource in ['punkt', 'punkt_tab', 'stopwords']:
@@ -44,13 +45,7 @@ y = all_news['label']
 X_train, X_test, y_train, y_test, news_train, news_test = train_test_split(X, y, all_news, test_size=0.2, random_state=42, stratify=y)
 
 # --- Text Preprocessing ---
-def preprocess_text(text):
-    """Tokenize, lowercase, remove punctuation and stopwords."""
-    stop_words = set(stopwords.words('english'))
-    # Add custom stopwords if you have any
-    # stop_words.update(CUSTOM_STOPWORDS) 
-    tokens = word_tokenize(text.lower())
-    return [token for token in tokens if token.isalpha() and token not in stop_words]
+# The preprocess_text function is now imported from a_detection.utils
 
 # --- TF-IDF Vectorization & Explainer Model ---
 print("Fitting TF-IDF vectorizer and training explainer model...")
