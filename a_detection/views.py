@@ -28,10 +28,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'model.joblib')
 VECTORIZER_PATH = os.path.join(BASE_DIR, 'vectorizer.joblib')
 WORD2VEC_PATH = os.path.join(BASE_DIR, 'word2vec.model')
+EXPLAINER_MODEL_PATH = os.path.join(BASE_DIR, 'explainer_model.joblib')
 
 model = joblib.load(MODEL_PATH)
 vectorizer = joblib.load(VECTORIZER_PATH)
 word2vec_model = gensim.models.Word2Vec.load(WORD2VEC_PATH)
+explainer_model = joblib.load(EXPLAINER_MODEL_PATH)
 
 def preprocess_text(text):
     """Tokenize, lowercase, remove punctuation and stopwords."""
@@ -86,25 +88,28 @@ def predict_fake_news(request):
                 confidence_score = confidence,
             )
 
-            # --- Suspicious words using TF-IDF ---
-            # Note: We can't get feature importance directly from Word2Vec+LogisticRegression in the same way.
-            # We use the TF-IDF vectorizer to find important/suspicious words as planned.
+            # --- Suspicious words using TF-IDF Explainer Model ---
+            # This is the correct way to find words that influenced the decision.
             X_tfidf = vectorizer.transform([content])
             feature_names = np.array(vectorizer.get_feature_names_out())
+            explainer_coefs = explainer_model.coef_[0]
+
+            # Get indices of words from the input text that are in our vocabulary
+            input_indices = X_tfidf.nonzero()[1]
+
+            # Get the words and their corresponding coefficients from the explainer model
+            input_words = feature_names[input_indices]
+            input_coefs = explainer_coefs[input_indices]
             
-            # Get the scores of the words present in the input
-            word_scores = X_tfidf.toarray().flatten()
-            word_indices = word_scores.nonzero()[0]
+            # Pair words with their coefficients
+            word_coef_pairs = list(zip(input_words, input_coefs))
+
+            if pred == 0:  # Fake news is class 0. High positive coefficients indicate "fake".
+                word_coef_pairs.sort(key=lambda x: -x[1])
+            else:  # Real news is class 1. High negative coefficients indicate "real".
+                word_coef_pairs.sort(key=lambda x: x[1])
             
-            # Create a list of (word, score) tuples
-            present_words = [
-                (feature_names[i], word_scores[i]) for i in word_indices
-                if len(feature_names[i]) > 2 and feature_names[i].lower() not in CUSTOM_STOPWORDS
-            ]
-            
-            # Sort by score and get the top words
-            present_words.sort(key=lambda x: -x[1])
-            keywords = [word for word, score in present_words[:10]] # Get top 10 suspicious words
+            keywords = [word for word, coef in word_coef_pairs[:10]]
             
             if len(keywords) > 0:
                 result['keywords'] = keywords

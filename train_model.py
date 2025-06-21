@@ -52,22 +52,32 @@ def preprocess_text(text):
     tokens = word_tokenize(text.lower())
     return [token for token in tokens if token.isalpha() and token not in stop_words]
 
-# --- TF-IDF for suspicious word detection ---
-print("Fitting TF-IDF vectorizer...")
-# Explanation: Fit the TF-IDF vectorizer on the training data. This will be saved and used later in the application to identify suspicious words.
-vectorizer = TfidfVectorizer(stop_words='english', max_features=10000)
-vectorizer.fit(X_train)
+# --- TF-IDF Vectorization & Explainer Model ---
+print("Fitting TF-IDF vectorizer and training explainer model...")
+# The vectorizer's tokenizer will use our custom preprocessing function.
+# We join the tokens back into a string as TfidfVectorizer works on raw text.
+vectorizer = TfidfVectorizer(max_features=10000, tokenizer=preprocess_text)
+
+# Fit on training data and transform both sets
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Train and save the TF-IDF based explainer model
+explainer_model = LogisticRegression(max_iter=1000)
+explainer_model.fit(X_train_tfidf, y_train)
+
 joblib.dump(vectorizer, 'vectorizer.joblib')
-print("TF-IDF vectorizer saved as vectorizer.joblib")
+joblib.dump(explainer_model, 'explainer_model.joblib')
+print("TF-IDF vectorizer and explainer model saved.")
 
 
-# --- Word2Vec Model Training ---
+# --- Word2Vec Model & Main Prediction Model ---
 print("\nTraining Word2Vec model...")
-# Explanation: Preprocess and tokenize the training text, then train a Word2Vec model to learn word embeddings.
+# We can reuse the preprocessing from the TF-IDF step's tokenizer call, but for clarity we'll show it here.
 tokenized_train_data = [preprocess_text(doc) for doc in X_train]
 word2vec_model = gensim.models.Word2Vec(tokenized_train_data, vector_size=100, window=5, min_count=2, workers=4)
 word2vec_model.save("word2vec.model")
-print("Word2Vec model saved as word2vec.model")
+print("Word2Vec model saved.")
 
 # Explanation: This function converts a document into a single vector by averaging the Word2Vec vectors of its words.
 def document_vector(doc, model):
@@ -78,6 +88,9 @@ def document_vector(doc, model):
         return np.zeros(model.vector_size)
     return np.mean(doc_vectors, axis=0)
 
+# Explanation: Create document vectors for the training and test sets.
+X_train_vec = np.array([document_vector(doc, word2vec_model) for doc in X_train])
+X_test_vec = np.array([document_vector(doc, word2vec_model) for doc in X_test])
 
 # --- Cosine Similarity (Demonstration using Word2Vec) ---
 print("\nDemonstrating Cosine Similarity between title and text using Word2Vec:")
@@ -100,26 +113,18 @@ for index, row in sample_test_news.iterrows():
     else:
         print(f"\nSkipping a row due to empty title or text.")
 
-
-# Explanation: Create document vectors for the training and test sets using the trained Word2Vec model.
-print("\nCreating document vectors from Word2Vec model for classification...")
-X_train_vec = np.array([document_vector(doc, word2vec_model) for doc in X_train])
-X_test_vec = np.array([document_vector(doc, word2vec_model) for doc in X_test])
-
-
 # --- Main Classification Model Training (Using Word2Vec) ---
-print("\nTraining Logistic Regression model with Word2Vec features...")
-# Explanation: Train the final logistic regression model using the Word2Vec document vectors.
-model = LogisticRegression(max_iter=1000)
-model.fit(X_train_vec, y_train)
+print("\nTraining Main Logistic Regression model with Word2Vec features...")
+main_model = LogisticRegression(max_iter=1000)
+main_model.fit(X_train_vec, y_train)
 
-# Evaluate
-print("\nModel Evaluation:")
-y_pred = model.predict(X_test_vec)
-print(classification_report(y_test, y_pred))
+# Evaluate Main Model
+print("\nMain Model (Word2Vec) Evaluation:")
+y_pred_main = main_model.predict(X_test_vec)
+print(classification_report(y_test, y_pred_main))
 
-# Explanation: Save the main classification model.
-joblib.dump(model, 'model.joblib')
+# Save the main classification model.
+joblib.dump(main_model, 'model.joblib')
 print('Main classification model saved as model.joblib')
 
 print("\n--- Training complete ---") 
