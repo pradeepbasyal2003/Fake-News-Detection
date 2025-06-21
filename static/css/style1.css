@@ -45,3 +45,11 @@ button:hover {
     font-size: 18px;
     text-align: center;
 } 
+
+.feedback_button{
+    margin-top: 10px;
+}
+
+form{
+    margin-bottom: 10px;
+}

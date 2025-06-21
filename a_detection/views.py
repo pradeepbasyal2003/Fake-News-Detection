@@ -1,10 +1,11 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import get_object_or_404, render,redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json, joblib, os
 import numpy as np
 from django.contrib.auth.decorators import login_required
-from .models import NewsArticle
+from .models import NewsArticle,UserFeedback
+from .forms import UserFeedbackForm
 
 # Custom stopwords for more relevant keywords
 CUSTOM_STOPWORDS = set([
@@ -79,3 +80,20 @@ def predict_fake_news(request):
         return redirect("/")
 
 # Create your views here.
+
+
+def submit_feedback(request):
+    
+
+    if request.method == 'POST':
+        form = UserFeedbackForm(request.POST)
+        if form.is_valid():
+            feedback = form.save(commit=False)
+            feedback.user = request.user
+            
+            feedback.save()
+            return redirect('/')
+    else:
+        form = UserFeedbackForm()
+
+    return render(request, 'feedback_form.html', {'form': form})

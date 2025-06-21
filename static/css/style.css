@@ -48,3 +48,22 @@ button:hover {
     font-size: 18px;
     text-align: center;
 } 
+
+.feedback_form{
+    margin-top: 10px;
+}
+
+
+.feedback_button {
+    display: inline-block;
+    padding: 10px 20px;
+    color: #007bff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+  
+  .feedback_button:hover {
+    background-color: #0056b3;
+  }

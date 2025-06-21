@@ -8,5 +8,5 @@ admin.site.register(NewsArticle,NewsArticleAdmin)
 
 
 class UserFeedbackAdmin(admin.ModelAdmin):
-    list_display = ["user","article","message","submitted_at"]
+    list_display = ["user","message","submitted_at"]
 admin.site.register(UserFeedback,UserFeedbackAdmin)

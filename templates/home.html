@@ -12,12 +12,28 @@
             {%if user.is_authenticated%}
             <button type="submit">Check News</button>
             {%else%}
-            <button href="{url 'accounts/login/'}">Check News</button>
+            <button href="{%url 'accounts/login/'%}">Check News</button>
             {%endif%}
         </form>
         <div id="result"></div>
+        <a href="{% url 'submit_feedback' %}" class="feedback_button">Give Feedback</a>
+
     </div>
     <script src="{%static 'css/app.js' %}"></script>
 
-
+    <style>
+        .feedback_button {
+          display: inline-block;
+          padding: 10px 20px;
+          background-color: #007bff;
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-size: 16px;
+          transition: background-color 0.3s;
+        }
+        .feedback_button:hover {
+          background-color: #0056b3;
+        }
+        </style>
 {%endblock%}

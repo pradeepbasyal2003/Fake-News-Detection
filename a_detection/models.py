@@ -24,7 +24,7 @@ class NewsArticle(models.Model):
         
 class UserFeedback(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE, related_name='feedbacks')
+    # article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE, related_name='feedbacks')
     message = models.TextField()
     submitted_at = models.DateTimeField(auto_now_add=True)
 
