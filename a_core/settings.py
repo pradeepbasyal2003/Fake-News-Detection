@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-37g45in_vrk_vg=-sa*%jug6)9wd50k0i=96#7t6rx=f9g_lt$'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost','127.0.0.1','*']
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'a_home',
     'a_users',
+    'a_detection',
     'django_cleanup.apps.CleanupConfig',
     'allauth',
     'allauth.account',

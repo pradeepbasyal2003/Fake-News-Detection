@@ -1,9 +1,19 @@
 {%extends 'layouts/blank.html' %}
+{%load static%}
 {%block content%}
 
-
-    <div class="max-w-4xl mx-auto px-8 py-24">
-        <h1>New Project</h1>
+    <div class="container">
+        <h1>Fake News Detection</h1>
+        <form id="newsForm">
+            <label for="title">Title:</label><br>
+            <input type="text" id="title" name="title" required><br><br>
+            <label for="body">Body:</label><br>
+            <textarea id="body" name="body" rows="6" required></textarea><br><br>
+            <button type="submit">Check News</button>
+        </form>
+        <div id="result"></div>
     </div>
+    <script src="{%static 'css/app.js' %}"></script>
+
 
 {%endblock%}
