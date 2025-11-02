@@ -1,125 +1,225 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
-from sklearn.metrics.pairwise import cosine_similarity
-import joblib
-import gensim
-import nltk
-from nltk.tokenize import word_tokenize
-import numpy as np
-import warnings
-from nltk.corpus import stopwords
-import string
-from a_detection.utils import preprocess_text
+import os, re, random, numpy as np, pandas as pd, torch
+from tqdm import tqdm
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+from gensim.models import KeyedVectors
+from torch.utils.data import DataLoader, TensorDataset
+import torch.nn as nn
+from torch.nn.utils.rnn import pad_sequence
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Explanation: Download NLTK resources if not already present.
-for resource in ['punkt', 'punkt_tab', 'stopwords']:
-    try:
-        nltk.data.find(f'tokenizers/{resource}' if resource.startswith('punkt') else f'corpora/{resource}')
-    except LookupError:
-        nltk.download(resource)
+# -----------------------------
+# Reproducibility & device
+# -----------------------------
+SEED = 42
+random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load datasets
-fake = pd.read_csv('fake.csv')
-true = pd.read_csv('true.csv')
+# -----------------------------
+# CSV paths (LOCAL)
+# -----------------------------
+BASE = "./data"
+TRAIN_CSV = os.path.join(BASE, "train.csv")
+VAL_CSV   = os.path.join(BASE, "validation.csv")
+TEST_CSV  = os.path.join(BASE, "test.csv")
 
-# Add labels: 0 for fake, 1 for true
-fake['label'] = 0
-true['label'] = 1
+# -----------------------------
+# Load CSVs
+# -----------------------------
+def load_csv(path):
+    df = pd.read_csv(path)
+    for col in ["title","text"]:
+        if col in df.columns:
+            df[col] = df[col].fillna("")
+        else:
+            df[col] = ""
+    df["label"] = df["label"].astype(int)
+    df["combined"] = (df["title"].astype(str) + " " + df["text"].astype(str)).str.strip()
+    return df[["combined","label"]]
 
-# Combine datasets
-all_news = pd.concat([fake, true], ignore_index=True)
+train_df = load_csv(TRAIN_CSV)
+val_df   = load_csv(VAL_CSV)
+test_df  = load_csv(TEST_CSV)
+print(train_df.head())
 
-# Explanation: Preprocess text data by filling missing values and combining title and text into a single 'content' column.
-all_news['title'] = all_news['title'].fillna('')
-all_news['text'] = all_news['text'].fillna('')
-all_news['content'] = all_news['title'] + ' ' + all_news['text']
+# -----------------------------
+# Tokenizer
+# -----------------------------
+TOKEN_PATTERN = re.compile(r"[A-Za-z']+")
 
-# Features and labels
-X = all_news['content']
-y = all_news['label']
+def tokenize(s: str):
+    return [w.lower() for w in TOKEN_PATTERN.findall(s)]
 
-# Explanation: Split the dataset into training and testing sets, including the full 'all_news' dataframe to access title and text for similarity calculation.
-X_train, X_test, y_train, y_test, news_train, news_test = train_test_split(X, y, all_news, test_size=0.2, random_state=42, stratify=y)
+# -----------------------------
+# Load Word2Vec (LOCAL)
+# -----------------------------
+W2V_PATH = "./embeddings/GoogleNews-vectors-negative300.bin.gz"
 
-# --- Text Preprocessing ---
-# The preprocess_text function is now imported from a_detection.utils
+print("Loading Word2Vec ...")
+w2v = KeyedVectors.load_word2vec_format(W2V_PATH, binary=True)
+EMBED_DIM = w2v.vector_size
 
-# --- TF-IDF Vectorization & Explainer Model ---
-print("Fitting TF-IDF vectorizer and training explainer model...")
-# The vectorizer's tokenizer will use our custom preprocessing function.
-# We join the tokens back into a string as TfidfVectorizer works on raw text.
-vectorizer = TfidfVectorizer(max_features=10000, tokenizer=preprocess_text)
+# -----------------------------
+# Convert text to embedding sequences
+# -----------------------------
+MAX_SEQ_LEN = 100
 
-# Fit on training data and transform both sets
-X_train_tfidf = vectorizer.fit_transform(X_train)
-X_test_tfidf = vectorizer.transform(X_test)
-
-# Train and save the TF-IDF based explainer model
-explainer_model = LogisticRegression(max_iter=1000)
-explainer_model.fit(X_train_tfidf, y_train)
-
-joblib.dump(vectorizer, 'vectorizer.joblib')
-joblib.dump(explainer_model, 'explainer_model.joblib')
-print("TF-IDF vectorizer and explainer model saved.")
-
-
-# --- Word2Vec Model & Main Prediction Model ---
-print("\nTraining Word2Vec model...")
-# We can reuse the preprocessing from the TF-IDF step's tokenizer call, but for clarity we'll show it here.
-tokenized_train_data = [preprocess_text(doc) for doc in X_train]
-word2vec_model = gensim.models.Word2Vec(tokenized_train_data, vector_size=100, window=5, min_count=2, workers=4)
-word2vec_model.save("word2vec.model")
-print("Word2Vec model saved.")
-
-# Explanation: This function converts a document into a single vector by averaging the Word2Vec vectors of its words.
-def document_vector(doc, model):
-    # Preprocess the document and remove out-of-vocabulary words
-    processed_tokens = preprocess_text(doc)
-    doc_vectors = [model.wv[word] for word in processed_tokens if word in model.wv.key_to_index]
-    if not doc_vectors:
-        return np.zeros(model.vector_size)
-    return np.mean(doc_vectors, axis=0)
-
-# Explanation: Create document vectors for the training and test sets.
-X_train_vec = np.array([document_vector(doc, word2vec_model) for doc in X_train])
-X_test_vec = np.array([document_vector(doc, word2vec_model) for doc in X_test])
-
-# --- Cosine Similarity (Demonstration using Word2Vec) ---
-print("\nDemonstrating Cosine Similarity between title and text using Word2Vec:")
-# Explanation: This section demonstrates calculating semantic similarity on a few test samples using Word2Vec.
-sample_test_news = news_test.head(3)
-for index, row in sample_test_news.iterrows():
-    title = row['title']
-    text = row['text']
-    
-    if title and text:
-        # Vectorize title and text using the trained Word2Vec model
-        title_vec = document_vector(title, word2vec_model).reshape(1, -1)
-        text_vec = document_vector(text, word2vec_model).reshape(1, -1)
-        
-        # Calculate cosine similarity
-        similarity_score = cosine_similarity(title_vec, text_vec)[0][0]
-        
-        print(f"\nTitle: '{title[:50]}...'")
-        print(f"Semantic Similarity with its text: {similarity_score:.2f} ({similarity_score*100:.0f}% confident match)")
+def text_to_sequence(text, keyed_vectors, max_len):
+    tokens = tokenize(text)[:max_len]
+    vectors = []
+    for token in tokens:
+        if token in keyed_vectors:
+            vectors.append(keyed_vectors[token])
+        else:
+            vectors.append(np.zeros(keyed_vectors.vector_size, dtype=np.float32))
+    if vectors:
+        return torch.tensor(np.array(vectors), dtype=torch.float32)
     else:
-        print(f"\nSkipping a row due to empty title or text.")
+        return torch.zeros((1, keyed_vectors.vector_size), dtype=torch.float32)
 
-# --- Main Classification Model Training (Using Word2Vec) ---
-print("\nTraining Main Logistic Regression model with Word2Vec features...")
-main_model = LogisticRegression(max_iter=1000)
-main_model.fit(X_train_vec, y_train)
+def batch_sequences(texts, keyed_vectors, max_len):
+    sequences = [text_to_sequence(text, keyed_vectors, max_len) for text in texts]
+    padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0.0)
+    return padded_sequences
 
-# Evaluate Main Model
-print("\nMain Model (Word2Vec) Evaluation:")
-y_pred_main = main_model.predict(X_test_vec)
-print(classification_report(y_test, y_pred_main))
+X_train = batch_sequences(train_df["combined"], w2v, MAX_SEQ_LEN)
+y_train = torch.tensor(train_df["label"].values, dtype=torch.float32)
 
-# Save the main classification model.
-joblib.dump(main_model, 'model.joblib')
-print('Main classification model saved as model.joblib')
+X_val = batch_sequences(val_df["combined"], w2v, MAX_SEQ_LEN)
+y_val = torch.tensor(val_df["label"].values, dtype=torch.float32)
 
-print("\n--- Training complete ---") 
+X_test = batch_sequences(test_df["combined"], w2v, MAX_SEQ_LEN)
+y_test = torch.tensor(test_df["label"].values, dtype=torch.float32)
+
+print(f"Sequence shapes: {X_train.shape}, {X_val.shape}, {X_test.shape}")
+
+# -----------------------------
+# DataLoaders
+# -----------------------------
+BATCH_SIZE = 128
+
+train_ds = TensorDataset(X_train, y_train)
+val_ds   = TensorDataset(X_val, y_val)
+test_ds  = TensorDataset(X_test, y_test)
+
+train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
+val_loader   = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
+test_loader  = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False)
+
+# -----------------------------
+# GRU Classifier
+# -----------------------------
+class GRUClassifier(nn.Module):
+    def __init__(self, embed_dim, hidden_dim=128, num_layers=1, bidirectional=True):
+        super().__init__()
+        self.gru = nn.GRU(
+            input_size=embed_dim,
+            hidden_size=hidden_dim,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=bidirectional
+        )
+        self.dropout = nn.Dropout(0.5)
+        self.fc = nn.Linear(hidden_dim * (2 if bidirectional else 1), 1)
+
+    def forward(self, x):
+        gru_out, h_n = self.gru(x)
+        if self.gru.bidirectional:
+            h_n = torch.cat((h_n[-2,:,:], h_n[-1,:,:]), dim=1)
+        else:
+            h_n = h_n[-1,:,:]
+        h_n = self.dropout(h_n)
+        logits = self.fc(h_n).squeeze(1)
+        return logits
+
+model = GRUClassifier(EMBED_DIM).to(device)
+
+# -----------------------------
+# Training setup
+# -----------------------------
+LR = 1e-3
+EPOCHS = 50
+patience = 5
+
+optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=1e-4)
+criterion = nn.BCEWithLogitsLoss()
+
+def evaluate(loader):
+    model.eval()
+    preds, labels = [], []
+    with torch.no_grad():
+        for xb, yb in loader:
+            xb, yb = xb.to(device), yb.to(device)
+            logits = model(xb)
+            probs = torch.sigmoid(logits)
+            pred = (probs >= 0.5).long().cpu().numpy()
+            preds.extend(pred.tolist())
+            labels.extend(yb.long().cpu().numpy().tolist())
+    acc = accuracy_score(labels, preds)
+    p, r, f1, _ = precision_recall_fscore_support(labels, preds, average="binary", zero_division=0)
+    return acc, p, r, f1
+
+# -------------------------------------------------------
+# ✅ MAIN RUN BLOCK (Required for VS Code)
+# -------------------------------------------------------
+if __name__ == "__main__":
+
+    train_losses, val_losses = [], []
+    train_accs, val_accs = [], []
+
+    best_f1, best_state = -1, None
+    early_stop_counter = 0
+
+    for epoch in range(1, EPOCHS+1):
+        model.train()
+        epoch_loss = 0.0
+        for xb, yb in tqdm(train_loader, desc=f"Epoch {epoch}/{EPOCHS}"):
+            xb, yb = xb.to(device), yb.to(device)
+            optimizer.zero_grad()
+            logits = model(xb)
+            loss = criterion(logits, yb)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item() * xb.size(0)
+        epoch_loss /= len(train_ds)
+        train_losses.append(epoch_loss)
+
+        # Validation
+        model.eval()
+        val_loss_epoch = 0.0
+        with torch.no_grad():
+            for xb, yb in val_loader:
+                xb, yb = xb.to(device), yb.to(device)
+                logits = model(xb)
+                loss = criterion(logits, yb)
+                val_loss_epoch += loss.item() * xb.size(0)
+        val_loss_epoch /= len(val_ds)
+        val_losses.append(val_loss_epoch)
+
+        train_acc, train_p, train_r, train_f1 = evaluate(train_loader)
+        val_acc, val_p, val_r, val_f1 = evaluate(val_loader)
+        train_accs.append(train_acc)
+        val_accs.append(val_acc)
+
+        print(f"Epoch {epoch}: train_F1={train_f1:.3f}  val_F1={val_f1:.3f}")
+
+        if val_f1 > best_f1:
+            best_f1 = val_f1
+            best_state = {k: v.cpu().clone() for k,v in model.state_dict().items()}
+            early_stop_counter = 0
+        else:
+            early_stop_counter += 1
+            if early_stop_counter >= patience:
+                print("Early stopping")
+                break
+
+    if best_state:
+        model.load_state_dict(best_state)
+
+    # Test
+    test_acc, test_p, test_r, test_f1 = evaluate(test_loader)
+    print("\nTEST RESULTS:")
+    print(test_acc, test_p, test_r, test_f1)
+
+    torch.save(model.state_dict(), "gru_classifier.pth")
+    print("✅ Model saved!")

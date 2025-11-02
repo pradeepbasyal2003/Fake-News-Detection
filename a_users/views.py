@@ -26,7 +26,18 @@ def profile_edit_view(request):
         form = ProfileForm(request.POST , request.FILES , instance=request.user.profile)
         if form.is_valid():
             form.save()
+            messages.success(
+                request,
+                "Profile updated successfully! Your changes have been saved.",
+                extra_tags='success'
+            )
             return redirect('profile')
+        else:
+            messages.error(
+                request,
+                "Please correct the errors below and try again.",
+                extra_tags='error'
+            )
     
     if request.path == reverse('profile-onboarding'):
         onboarding = True
@@ -52,7 +63,11 @@ def profile_emailchange(request):
         if form.is_valid():
             email = form.cleaned_data['email']
             if User.objects.filter(email=email).exclude(id=request.user.id).exists():
-                messages.warning(request, f'{email} is already in use.')
+                messages.error(
+                    request, 
+                    f'The email address {email} is already in use by another account. Please choose a different email address.',
+                    extra_tags='error'
+                )
                 return redirect('profile_settings')
             
             form.save()
@@ -60,16 +75,30 @@ def profile_emailchange(request):
             #then signal updates emailaddress and set verified to false
             
             send_email_confirmation(request, request.user)
+            messages.success(
+                request,
+                f'Email address updated to {email}. Please check your inbox for a verification email.',
+                extra_tags='success'
+            )
             return redirect('profile_settings')
         
         else:
-            messages.warning(request,'Form not valid')
+            messages.error(
+                request,
+                'Please enter a valid email address and try again.',
+                extra_tags='error'
+            )
             return redirect('profile_settings') 
     return redirect('home')
 
 @login_required
 def profile_emailverify(request):
     send_email_confirmation(request,request.user)
+    messages.success(
+        request,
+        'Verification email sent! Please check your inbox and click the verification link.',
+        extra_tags='success'
+    )
     return redirect('profile_settings')
 
 

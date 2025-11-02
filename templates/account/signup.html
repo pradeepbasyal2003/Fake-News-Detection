@@ -1,0 +1,226 @@
+{% extends "allauth/layouts/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-black text-white">
+    <!-- Hero Section -->
+    <div class="container mx-auto px-6 py-16">
+        <div class="max-w-md mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Join Us
+                </h1>
+                <p class="text-xl text-gray-400">
+                    Create your account to get started
+                </p>
+            </div>
+
+            <!-- Signup Form Card -->
+            <div class="bg-gray-900 rounded-2xl p-8 md:p-12 shadow-2xl border border-gray-800">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Signup Form Fields -->
+                    <div class="space-y-6">
+                        {% for field in form %}
+                            {% if field.name != 'remember' %}
+                                <div class="space-y-2">
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-white">
+                                        {{ field.label }}
+                                        {% if field.field.required %}
+                                            <span class="text-red-400">*</span>
+                                        {% endif %}
+                                    </label>
+                                    <div class="relative">
+                                        {{ field }}
+                                        {% if field.help_text %}
+                                            <div class="text-gray-400 text-xs mt-1">
+                                                {{ field.help_text }}
+                                            </div>
+                                        {% endif %}
+                                        {% if field.errors %}
+                                            <div class="text-red-400 text-sm mt-1">
+                                                {% for error in field.errors %}
+                                                    <p>{{ error }}</p>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    {% if form.terms %}
+                        <div class="flex items-start">
+                            {{ form.terms }}
+                            <label for="{{ form.terms.id_for_label }}" class="ml-2 text-sm text-gray-300">
+                                I agree to the <a href="#" class="text-white hover:text-gray-300 underline">Terms of Service</a> and <a href="#" class="text-white hover:text-gray-300 underline">Privacy Policy</a>
+                            </label>
+                        </div>
+                    {% endif %}
+
+                    <!-- Submit Button -->
+                    <div class="pt-4">
+                        <button 
+                            type="submit" 
+                            class="w-full bg-white text-black font-bold py-4 px-8 rounded-xl text-lg hover:bg-gray-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <span>✨</span>
+                            Create Account
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Additional Links -->
+                <div class="mt-8 space-y-4 text-center">
+                    {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                    {% endif %}
+                    
+                    <div class="text-sm">
+                        <span class="text-gray-400">Already have an account? </span>
+                        <a href="{% url 'account_login' %}" class="text-white hover:text-gray-300 font-semibold transition-colors duration-300">
+                            Sign in here
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Back to Home -->
+                <div class="mt-8 text-center">
+                    <a 
+                        href="{% url 'home' %}" 
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105"
+                    >
+                        ← Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <!-- Benefits Section -->
+            <div class="mt-16 grid md:grid-cols-3 gap-6">
+                <div class="text-center p-4 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-3xl mb-3">🔍</div>
+                    <h3 class="text-lg font-bold mb-2">AI Detection</h3>
+                    <p class="text-gray-400 text-sm">Advanced fake news detection powered by machine learning</p>
+                </div>
+                <div class="text-center p-4 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-3xl mb-3">⚡</div>
+                    <h3 class="text-lg font-bold mb-2">Instant Results</h3>
+                    <p class="text-gray-400 text-sm">Get real-time analysis in seconds</p>
+                </div>
+                <div class="text-center p-4 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-3xl mb-3">🛡️</div>
+                    <h3 class="text-lg font-bold mb-2">Secure & Private</h3>
+                    <p class="text-gray-400 text-sm">Your data is protected and never shared</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Form field styling */
+    .allauth input[type="text"],
+    .allauth input[type="email"],
+    .allauth input[type="password"],
+    .allauth textarea {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    .allauth input[type="text"]:focus,
+    .allauth input[type="email"]:focus,
+    .allauth input[type="password"]:focus,
+    .allauth textarea:focus {
+        outline: none;
+        border-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+
+    .allauth input::placeholder,
+    .allauth textarea::placeholder {
+        color: #6b7280;
+    }
+
+    /* Checkbox styling */
+    .allauth input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        accent-color: #ffffff;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.25rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Error styling */
+    .allauth .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .allauth .errorlist li {
+        background: #dc2626;
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Non-field errors */
+    .allauth .nonfield-errors {
+        background: #dc2626;
+        color: #ffffff;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    /* Help text styling */
+    .allauth .helptext {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Smooth animations */
+    .allauth * {
+        transition: all 0.3s ease;
+    }
+
+    /* Focus visible for accessibility */
+    .allauth button:focus-visible,
+    .allauth input:focus-visible,
+    .allauth textarea:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+
+    /* Link hover effects */
+    .allauth a {
+        transition: all 0.3s ease;
+    }
+
+    .allauth a:hover {
+        text-decoration: none;
+    }
+
+    /* Required field indicator */
+    .allauth .text-red-400 {
+        color: #f87171;
+    }
+</style>
+{% endblock %}

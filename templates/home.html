@@ -2,38 +2,145 @@
 {%load static%}
 {%block content%}
 
-    <div class="container">
-        <h1>Fake News Detection</h1>
-        <form id="newsForm">
-            <label for="title">Title:</label><br>
-            <input type="text" id="title" name="title" required><br><br>
-            <label for="body">Body:</label><br>
-            <textarea id="body" name="body" rows="6" required></textarea><br><br>
-            {%if user.is_authenticated%}
-            <button type="submit">Check News</button>
-            {%else%}
-            <button href="{url '/accounts/login/'}">Check News</button>
-            {%endif%}
-        </form>
-        <div id="result"></div>
-        <a href="{% url 'submit_feedback' %}" class="feedback_button">Give Feedback</a>
+<div class="min-h-screen bg-black text-white">
+    <div class="container mx-auto px-6 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 text-white">
+                    News Verification Tool
+                </h1>
+                <p class="text-lg text-gray-400 max-w-xl mx-auto">
+                    Check if a news article might be misleading or unreliable
+                </p>
+            </div>
 
+            <!-- Main Form Card -->
+            <div class="bg-gray-900 rounded-lg p-6 md:p-10 border border-gray-800">
+                <form id="newsForm" class="space-y-6">
+                    {% csrf_token %}
+                    <!-- Title Input -->
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-300 mb-2">
+                            Article Title
+                        </label>
+                        <input 
+                            type="text" 
+                            id="title" 
+                            name="title" 
+                            required
+                            class="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-gray-600 focus:outline-none text-base"
+                            placeholder="What's the headline?"
+                        >
+                    </div>
+
+                    <!-- Body Input -->
+                    <div>
+                        <label for="body" class="block text-sm font-medium text-gray-300 mb-2">
+                            Article Content
+                        </label>
+                        <textarea 
+                            id="body" 
+                            name="body" 
+                            rows="10" 
+                            required
+                            class="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-gray-600 focus:outline-none text-base resize-none"
+                            placeholder="Paste the article text here..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-2">
+                        {%if user.is_authenticated%}
+                        <button 
+                            type="submit" 
+                            class="w-full bg-white text-black font-semibold py-3 px-6 rounded-lg text-base hover:bg-gray-100 transition-colors"
+                        >
+                            Check Article
+                        </button>
+                        {%else%}
+                        <button 
+                            type="button" 
+                            onclick="window.location.href='/accounts/login/'"
+                            class="w-full bg-white text-black font-semibold py-3 px-6 rounded-lg text-base hover:bg-gray-100 transition-colors"
+                        >
+                            Check Article
+                        </button>
+                        {%endif%}
+                    </div>
+                </form>
+
+                <!-- Result Display -->
+                <div id="result" class="mt-6 p-5 bg-black rounded-lg border border-gray-800 min-h-[80px] hidden">
+                    <!-- Results will be displayed here -->
+                </div>
+
+                <!-- Feedback Button -->
+                <div class="mt-6 text-center">
+                    <a 
+                        href="{% url 'submit_feedback' %}" 
+                        class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-transparent border border-gray-600 text-gray-400 text-sm rounded-lg hover:border-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                        Share feedback
+                    </a>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="mt-12 grid md:grid-cols-3 gap-6">
+                <div class="p-5 bg-gray-900 rounded-lg border border-gray-800">
+                    <h3 class="text-base font-semibold mb-2 text-white">How it works</h3>
+                    <p class="text-sm text-gray-400">Analyzes text patterns and language markers to identify potential misinformation</p>
+                </div>
+                <div class="p-5 bg-gray-900 rounded-lg border border-gray-800">
+                    <h3 class="text-base font-semibold mb-2 text-white">Quick results</h3>
+                    <p class="text-sm text-gray-400">Analysis typically completes in under a few seconds</p>
+                </div>
+                <div class="p-5 bg-gray-900 rounded-lg border border-gray-800">
+                    <h3 class="text-base font-semibold mb-2 text-white">Disclaimer</h3>
+                    <p class="text-sm text-gray-400">Results are indicators, not definitive. Always verify through multiple sources</p>
+                </div>
+            </div>
+        </div>
     </div>
-    <script src="{%static 'css/app.js' %}"></script>
+</div>
 
-    <style>
-        .feedback_button {
-          display: inline-block;
-          padding: 10px 20px;
-          background-color: #007bff;
-          color: white;
-          text-decoration: none;
-          border-radius: 8px;
-          font-size: 16px;
-          transition: background-color 0.3s;
-        }
-        .feedback_button:hover {
-          background-color: #0056b3;
-        }
-        </style>
+<script src="{%static 'css/app.js' %}"></script>
+
+<style>
+    /* Custom scrollbar for textarea */
+    textarea::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    textarea::-webkit-scrollbar-track {
+        background: #1f2937;
+        border-radius: 4px;
+    }
+    
+    textarea::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 4px;
+    }
+    
+    textarea::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+
+    /* Smooth animations */
+    * {
+        transition: all 0.3s ease;
+    }
+
+    /* Focus states */
+    input:focus, textarea:focus {
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Loading animation for result */
+    #result.loading {
+        background: #111827;
+    }
+</style>
+
 {%endblock%}

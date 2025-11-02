@@ -1,16 +1,91 @@
 {% extends 'layouts/blank.html' %}
+{% load static %}
 
 {% block content %}
 
-<div class="max-w-lg mx-auto flex flex-col items-center pt-20 px-4">
-    <img class="w-36 h-36 rounded-full object-cover mb-4" src="{{ profile.avatar }}" />
-    <div class="text-center">
-        <h1>{{ profile.name }}</h1>
-        <div class="text-gray-400 mb-2 -mt-3">@{{ profile.user.username }}</div>
-        {% if profile.info %}
-        <div class="mt-8">{{ profile.info|linebreaksbr }}</div>
-        {% endif %}  
+<div class="min-h-screen bg-black text-white">
+    <!-- Hero Section -->
+    <div class="container mx-auto px-6 py-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- Profile Header -->
+            <div class="text-center mb-12">
+                <div class="relative inline-block">
+                    <img class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover mb-6 border-4 border-gray-700 shadow-2xl" 
+                         src="{{ profile.avatar }}" 
+                         alt="{{ profile.displayname|default:profile.user.username }}'s avatar" />
+                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-black flex items-center justify-center">
+                        <div class="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                </div>
+                
+                <h1 class="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {{ profile.displayname|default:profile.user.get_full_name|default:profile.user.username }}
+                </h1>
+                <div class="text-xl text-gray-400 mb-4">@{{ profile.user.username }}</div>
+                
+                {% if profile.info %}
+                <div class="max-w-md mx-auto mt-8 p-6 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-gray-300 text-center leading-relaxed">
+                        {{ profile.info|linebreaksbr }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Profile Stats -->
+            <div class="grid md:grid-cols-3 gap-6 mb-12">
+                <div class="text-center p-6 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-3xl font-bold text-white mb-2">0</div>
+                    <div class="text-gray-400">Articles Analyzed</div>
+                </div>
+                <div class="text-center p-6 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-3xl font-bold text-white mb-2">0</div>
+                    <div class="text-gray-400">Feedback Given</div>
+                </div>
+                <div class="text-center p-6 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-3xl font-bold text-white mb-2">0</div>
+                    <div class="text-gray-400">Days Active</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'profile_edit' %}" 
+                   class="inline-flex items-center gap-2 px-8 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-all duration-300 transform hover:scale-105">
+                    <span>✏️</span>
+                    Edit Profile
+                </a>
+                <a href="{% url 'profile_settings' %}" 
+                   class="inline-flex items-center gap-2 px-8 py-3 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105">
+                    <span>⚙️</span>
+                    Settings
+                </a>
+                <a href="{% url 'home' %}" 
+                   class="inline-flex items-center gap-2 px-8 py-3 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105">
+                    <span>🏠</span>
+                    Back to Home
+                </a>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+    /* Smooth animations */
+    * {
+        transition: all 0.3s ease;
+    }
+
+    /* Hover effects */
+    a:hover {
+        text-decoration: none;
+    }
+
+    /* Focus visible for accessibility */
+    a:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+</style>
 
 {% endblock %}

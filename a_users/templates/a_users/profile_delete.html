@@ -1,14 +1,169 @@
-{% extends 'layouts/box.html' %}
+{% extends 'layouts/blank.html' %}
+{% load static %}
 
 {% block content %}
 
-<h1>Delete Account</h1>
-<p>Are you sure you want to delete your account?</p>
+<div class="min-h-screen bg-black text-white">
+    <!-- Hero Section -->
+    <div class="container mx-auto px-6 py-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">⚠️</span>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+                    Delete Account
+                </h1>
+                <p class="text-xl text-gray-400">This action cannot be undone</p>
+            </div>
 
-<form method='POST'>
-    {% csrf_token %}
-    <button type="submit" class="button-red mt-6">Yes, I want to delete my account</button>
-    <a class="button button-gray ml-1" href="{{ request.META.HTTP_REFERER }}">Cancel</a>
-</form>
+            <!-- Warning Card -->
+            <div class="bg-red-900/20 rounded-2xl p-8 shadow-2xl border border-red-800 mb-8">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold text-red-300 mb-4">⚠️ Permanent Account Deletion</h2>
+                    <div class="text-red-200 space-y-3">
+                        <p>Are you absolutely sure you want to delete your account?</p>
+                        <p class="font-semibold">This will permanently remove:</p>
+                        <ul class="text-left max-w-md mx-auto space-y-2">
+                            <li class="flex items-center gap-2">
+                                <span>•</span>
+                                <span>Your profile and all personal information</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span>•</span>
+                                <span>All analyzed articles and detection history</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span>•</span>
+                                <span>All feedback and contributions</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span>•</span>
+                                <span>Account settings and preferences</span>
+                            </li>
+                        </ul>
+                        <p class="font-bold text-red-300 mt-4">This action cannot be undone!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmation Form -->
+            <div class="bg-gray-900 rounded-2xl p-8 shadow-2xl border border-gray-800">
+                <form method="POST" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="text-center">
+                        <h3 class="text-xl font-semibold text-white mb-4">Confirm Account Deletion</h3>
+                        <p class="text-gray-400 mb-6">Type "DELETE" to confirm you understand this action is permanent</p>
+                        
+                        <input type="text" 
+                               id="confirmation" 
+                               placeholder="Type DELETE to confirm" 
+                               class="w-full max-w-md mx-auto px-4 py-3 bg-black border-2 border-gray-700 rounded-xl text-white text-center font-semibold focus:border-red-500 focus:outline-none transition-colors duration-300"
+                               required>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="submit" 
+                                id="delete-button"
+                                disabled
+                                class="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-4 px-8 rounded-xl text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2">
+                            <span>🗑️</span>
+                            Yes, Delete My Account
+                        </button>
+                        
+                        <a href="{{ request.META.HTTP_REFERER|default:'profile_settings' }}" 
+                           class="flex-1 inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105">
+                            <span>❌</span>
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Additional Warning -->
+            <div class="mt-8 text-center">
+                <p class="text-sm text-gray-500">
+                    If you're having issues with your account, consider 
+                    <a href="{% url 'profile_settings' %}" class="text-blue-400 hover:text-blue-300 underline">
+                        contacting support
+                    </a> 
+                    instead of deleting your account.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Form field styling */
+    input[type="text"] {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    input[type="text"]:focus {
+        outline: none;
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    input::placeholder {
+        color: #6b7280;
+    }
+
+    /* Smooth animations */
+    * {
+        transition: all 0.3s ease;
+    }
+
+    /* Hover effects */
+    a:hover {
+        text-decoration: none;
+    }
+
+    /* Focus visible for accessibility */
+    button:focus-visible,
+    input:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmationInput = document.getElementById('confirmation');
+        const deleteButton = document.getElementById('delete-button');
+        
+        confirmationInput.addEventListener('input', function() {
+            if (this.value.toUpperCase() === 'DELETE') {
+                deleteButton.disabled = false;
+                deleteButton.classList.remove('disabled:bg-gray-600', 'disabled:cursor-not-allowed');
+                deleteButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                deleteButton.disabled = true;
+                deleteButton.classList.add('disabled:bg-gray-600', 'disabled:cursor-not-allowed');
+                deleteButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+            }
+        });
+
+        // Prevent accidental form submission
+        deleteButton.addEventListener('click', function(e) {
+            if (confirmationInput.value.toUpperCase() !== 'DELETE') {
+                e.preventDefault();
+                alert('Please type "DELETE" to confirm account deletion.');
+            }
+        });
+    });
+</script>
 
 {% endblock %}

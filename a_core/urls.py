@@ -20,9 +20,15 @@ from django.conf.urls.static import static
 from django.conf import settings
 from a_home.views import *
 from a_users.views import profile_view
+from a_users.auth_views import CustomLoginView, CustomSignupView, custom_logout_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Custom authentication views with enhanced error handling
+    path('accounts/login/', CustomLoginView.as_view(), name='account_login'),
+    path('accounts/signup/', CustomSignupView.as_view(), name='account_signup'),
+    path('accounts/logout/', custom_logout_view, name='account_logout'),
+    # Include other allauth URLs
     path('accounts/', include('allauth.urls')),
     path('', include('a_detection.urls')),
     path('profile/',include('a_users.urls')),

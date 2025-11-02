@@ -1,57 +1,213 @@
-{% extends 'layouts/box.html' %}
+{% extends 'layouts/blank.html' %}
+{% load static %}
 
 {% block content %}
 
-{%if onboarding%}
-<h1 class="mb-4">complete your Profile</h1>
-{%else%}
-<h1 class="mb-4">Edit your Profile</h1>
-{%endif%}
+<div class="min-h-screen bg-black text-white">
+    <!-- Hero Section -->
+    <div class="container mx-auto px-6 py-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                {%if onboarding%}
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Complete Your Profile
+                </h1>
+                <p class="text-xl text-gray-400">Let's set up your profile to get started</p>
+                {%else%}
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Edit Your Profile
+                </h1>
+                <p class="text-xl text-gray-400">Update your profile information</p>
+                {%endif%}
+            </div>
 
-<div class="text-center flex flex-col items-center">
-    <img id="avatar" class="w-36 h-36 rounded-full object-cover my-4" src="{{ user.profile.avatar }}" />
-    <div class="text-center max-w-md">
-        <h1 id="displayname">{{ user.profile.displayname|default:"" }}</h1>
-        <div class="text-gray-400 mb-2 -mt-3">@{{ user.username }}</div>
+            <!-- Profile Preview -->
+            <div class="text-center flex flex-col items-center mb-12">
+                <div class="relative inline-block">
+                    <img id="avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover mb-6 border-4 border-gray-700 shadow-2xl" 
+                         src="{{ user.profile.avatar }}" 
+                         alt="Profile avatar" />
+                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-black flex items-center justify-center">
+                        <div class="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                </div>
+                <div class="text-center max-w-md">
+                    <h2 id="displayname" class="text-2xl font-bold text-white mb-2">
+                        {{ user.profile.displayname|default:user.username }}
+                    </h2>
+                    <div class="text-gray-400 mb-2">@{{ user.username }}</div>
+                </div>
+            </div>
+
+            <!-- Edit Form Card -->
+            <div class="bg-gray-900 rounded-2xl p-8 md:p-12 shadow-2xl border border-gray-800">
+                <form method="POST" enctype="multipart/form-data" class="space-y-8">
+                    {% csrf_token %}
+                    
+                    <!-- Form Fields -->
+                    <div class="space-y-6">
+                        {% for field in form %}
+                            <div class="space-y-3">
+                                <label for="{{ field.id_for_label }}" class="block text-lg font-semibold text-white">
+                                    {{ field.label }}
+                                    {% if field.field.required %}
+                                        <span class="text-red-400">*</span>
+                                    {% endif %}
+                                </label>
+                                <div class="relative">
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <div class="text-gray-400 text-sm mt-1">
+                                            {{ field.help_text }}
+                                        </div>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="text-red-400 text-sm mt-1">
+                                            {% for error in field.errors %}
+                                                <p>{{ error }}</p>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="submit" 
+                                class="flex-1 bg-white text-black font-bold py-4 px-8 rounded-xl text-lg hover:bg-gray-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2">
+                            <span>💾</span>
+                            Save Changes
+                        </button>
+                        
+                        {%if onboarding%}
+                        <a href="{%url 'home' %}" 
+                           class="flex-1 inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105">
+                            <span>⏭️</span>
+                            Skip for Now
+                        </a>
+                        {%else%}
+                        <a href="{{ request.META.HTTP_REFERER|default:'profile' }}" 
+                           class="flex-1 inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105">
+                            <span>❌</span>
+                            Cancel
+                        </a>
+                        {%endif%}
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" >Submit</button>
-    {%if onboarding%}
-    <a class="button button-gray ml-1" href="{%url 'home' %}">Skip</a>
-    {%else%}
-    <a class="button button-gray ml-1" href="{{ request.META.HTTP_REFERER }}">Cancel</a>
-    {%endif%}
-</form>
 
+<style>
+    /* Form field styling */
+    input[type="text"],
+    input[type="email"],
+    textarea {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
 
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
 
+    input::placeholder,
+    textarea::placeholder {
+        color: #6b7280;
+    }
+
+    /* File input styling */
+    input[type="file"] {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    input[type="file"]:focus {
+        outline: none;
+        border-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Error styling */
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .errorlist li {
+        background: #dc2626;
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Smooth animations */
+    * {
+        transition: all 0.3s ease;
+    }
+
+    /* Focus visible for accessibility */
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+
+    /* Hover effects */
+    a:hover {
+        text-decoration: none;
+    }
+</style>
 
 <script>
-    
     // This updates the avatar
     const fileInput = document.querySelector('input[type="file"]');
 
     fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    const image = document.querySelector('#avatar');
+        const file = event.target.files[0];
+        const image = document.querySelector('#avatar');
 
-    if (file && file.type.includes('image')) {
-        const url = URL.createObjectURL(file);
-        image.src = url;
-    }
+        if (file && file.type.includes('image')) {
+            const url = URL.createObjectURL(file);
+            image.src = url;
+        }
     });
 
     // This updates the name
     const display_nameInput = document.getElementById('id_displayname');
     const display_nameOutput = document.getElementById('displayname');
 
-    display_nameInput.addEventListener('input', (event) => {
-        display_nameOutput.innerText = event.target.value;
-    });
-
+    if (display_nameInput && display_nameOutput) {
+        display_nameInput.addEventListener('input', (event) => {
+            display_nameOutput.innerText = event.target.value || '{{ user.username }}';
+        });
+    }
 </script>
 
 {% endblock %}

@@ -1,72 +1,189 @@
-<h2>feedback form</h2>
+{% extends 'layouts/blank.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-black text-white">
+    <!-- Hero Section -->
+    <div class="container mx-auto px-6 py-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Share Your Feedback
+                </h1>
+                <p class="text-xl text-gray-400 max-w-xl mx-auto">
+                    Help us improve our fake news detection system by sharing your thoughts and suggestions
+                </p>
+            </div>
+
+            <!-- Feedback Form Card -->
+            <div class="bg-gray-900 rounded-2xl p-8 md:p-12 shadow-2xl border border-gray-800">
+                <form method="post" class="space-y-8">
+                    {% csrf_token %}
+                    
+                    <!-- Message Field -->
+                    <div class="space-y-3">
+                        <label for="{{ form.message.id_for_label }}" class="block text-lg font-semibold text-white">
+                            Your Feedback
+                        </label>
+                        <div class="relative">
+                            {{ form.message }}
+                            <div class="absolute top-3 right-3 text-gray-500 text-sm">
+                                <span id="char-count">0</span>/1000
+                            </div>
+                        </div>
+                        {% if form.message.errors %}
+                            <div class="text-red-400 text-sm mt-2">
+                                {% for error in form.message.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-4">
+                        <button 
+                            type="submit" 
+                            class="w-full bg-white text-black font-bold py-4 px-8 rounded-xl text-lg hover:bg-gray-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <span>💬</span>
+                            Submit Feedback
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Back to Home -->
+                <div class="mt-8 text-center">
+                    <a 
+                        href="{% url 'home' %}" 
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 transform hover:scale-105"
+                    >
+                        ← Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <!-- Why Feedback Matters Section -->
+            <div class="mt-16 grid md:grid-cols-2 gap-8">
+                <div class="text-center p-6 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold mb-2">Improve Accuracy</h3>
+                    <p class="text-gray-400">Your feedback helps us fine-tune our AI models for better detection accuracy</p>
+                </div>
+                <div class="text-center p-6 bg-gray-900 rounded-xl border border-gray-800">
+                    <div class="text-4xl mb-4">🚀</div>
+                    <h3 class="text-xl font-bold mb-2">Enhance Features</h3>
+                    <p class="text-gray-400">Suggest new features or improvements to make the tool more useful</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f9f9f9;
-      padding: 30px;
+    /* Form field styling */
+    #{{ form.message.id_for_label }} {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        padding-bottom: 2.5rem;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+        min-height: 120px;
+        resize: vertical;
+        font-family: inherit;
     }
-  
-    h2 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 20px;
+
+    #{{ form.message.id_for_label }}:focus {
+        outline: none;
+        border-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
     }
-  
-    form {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 25px;
-      background-color: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+
+    #{{ form.message.id_for_label }}::placeholder {
+        color: #6b7280;
     }
-  
-    form p {
-      margin-bottom: 20px;
+
+    /* Character counter */
+    #char-count {
+        font-size: 0.875rem;
+        color: #6b7280;
     }
-  
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-      color: #444;
+
+    /* Custom scrollbar for textarea */
+    #{{ form.message.id_for_label }}::-webkit-scrollbar {
+        width: 8px;
     }
-  
-    input[type="text"],
-    textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 15px;
-      resize: vertical;
-      background-color: #fafafa;
+    
+    #{{ form.message.id_for_label }}::-webkit-scrollbar-track {
+        background: #1f2937;
+        border-radius: 4px;
     }
-  
-    textarea {
-      min-height: 100px;
+    
+    #{{ form.message.id_for_label }}::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 4px;
     }
-  
-    button[type="submit"] {
-      display: block;
-      width: 100%;
-      background-color: #007bff;
-      color: white;
-      padding: 12px 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
+    
+    #{{ form.message.id_for_label }}::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
     }
-  
-    button[type="submit"]:hover {
-      background-color: #0056b3;
-      
+
+    /* Error styling */
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
     }
-  </style>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Submit Feedback</button>
-</form>
+
+    .errorlist li {
+        background: #dc2626;
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Smooth animations */
+    * {
+        transition: all 0.3s ease;
+    }
+
+    /* Focus visible for accessibility */
+    button:focus-visible,
+    textarea:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+</style>
+
+<script>
+    // Character counter functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const textarea = document.getElementById('{{ form.message.id_for_label }}');
+        const charCount = document.getElementById('char-count');
+        
+        if (textarea && charCount) {
+            textarea.addEventListener('input', function() {
+                const length = this.value.length;
+                charCount.textContent = length;
+                
+                // Change color based on character count
+                if (length > 900) {
+                    charCount.style.color = '#dc2626'; // red
+                } else if (length > 750) {
+                    charCount.style.color = '#f59e0b'; // amber
+                } else {
+                    charCount.style.color = '#6b7280'; // gray
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

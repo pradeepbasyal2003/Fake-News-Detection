@@ -1,69 +1,249 @@
+/* Global Styles */
 body {
-    font-family: Arial, sans-serif;
-    background: #f4f4f4;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #000000;
     margin: 0;
     padding: 0;
+    color: #ffffff;
+    line-height: 1.6;
 }
+
+/* Container Styles - Updated for new design */
 .container {
-    max-width: 500px;
-    margin: 40px auto;
-    background: #fff;
-    padding: 30px 40px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
 }
+
+/* Typography */
 h1 {
-    text-align: center;
-    color: #333;
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+p {
+    color: #a1a1aa;
+    margin-bottom: 1rem;
+}
+
+/* Form Elements */
 label {
     display: block;
-    color: black;
-    font-weight: bold;
-    margin-top: 10px;
+    color: #ffffff;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
 }
-input[type="text"], textarea {
+
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+textarea {
     width: 100%;
-    padding: 8px;
-    margin-top: 4px;
-    margin-bottom: 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 1rem 1.5rem;
+    background: #000000;
+    border: 2px solid #374151;
+    border-radius: 0.75rem;
+    color: #ffffff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
     box-sizing: border-box;
 }
+
+input[type="text"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+textarea:focus {
+    outline: none;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #6b7280;
+}
+
+/* Button Styles */
 button {
-    background: #007bff;
-    color: #fff;
+    background: #ffffff;
+    color: #000000;
     border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    font-size: 1rem;
     cursor: pointer;
-    font-size: 16px;
+    transition: all 0.3s ease;
+    text-transform: none;
+    letter-spacing: 0.025em;
 }
+
 button:hover {
-    background: #0056b3;
+    background: #f3f4f6;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    background: #374151;
+    color: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Result Display */
 #result {
-    margin-top: 20px;
-    font-size: 18px;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #000000;
+    border: 2px solid #374151;
+    border-radius: 0.75rem;
+    font-size: 1.125rem;
     text-align: center;
-} 
-
-.feedback_form{
-    margin-top: 10px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+#result.hidden {
+    display: none;
+}
 
+#result.loading {
+    background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Feedback Button */
 .feedback_button {
-    display: inline-block;
-    padding: 10px 20px;
-    color: #007bff;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 2rem;
+    background: transparent;
+    color: #d1d5db;
     text-decoration: none;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: background-color 0.3s;
-  }
-  
-  .feedback_button:hover {
-    background-color: #0056b3;
-  }
+    border: 2px solid #4b5563;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.feedback_button:hover {
+    border-color: #ffffff;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Card Styles */
+.card {
+    background: #111827;
+    border: 2px solid #374151;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+
+.mt-4 { margin-top: 1rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mt-8 { margin-top: 2rem; }
+
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 1rem;
+    }
+    
+    h1 {
+        font-size: 2.5rem;
+    }
+    
+    input[type="text"], 
+    input[type="email"], 
+    input[type="password"], 
+    textarea {
+        padding: 0.875rem 1.25rem;
+    }
+    
+    button {
+        padding: 0.875rem 1.5rem;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* Smooth transitions */
+* {
+    transition: all 0.3s ease;
+}
+
+/* Focus visible for accessibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}

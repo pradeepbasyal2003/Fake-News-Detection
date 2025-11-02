@@ -1,9 +1,94 @@
-<form action="{% url 'profile-emailchange' %}" method="post" class="flex gap-2 text-black" autocomplete="off">
-    {% csrf_token %}
-    {% for field in form %}{{ field }}{% endfor %}
-    <button class="block !bg-gray-800" type="submit">Submit</button>
-</form>
+<div class="space-y-4">
+    <form action="{% url 'profile-emailchange' %}" method="post" class="space-y-4" autocomplete="off">
+        {% csrf_token %}
+        <div class="space-y-2">
+            <label for="{{ form.email.id_for_label }}" class="block text-sm font-semibold text-white">
+                New Email Address
+            </label>
+            <div class="relative">
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="text-red-400 text-sm mt-1">
+                        {% for error in form.email.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="flex gap-3">
+            <button type="submit" 
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-300 flex items-center justify-center gap-2">
+                <span>📧</span>
+                Update Email
+            </button>
+            
+            <a hx-swap-oob="true" 
+               id="email-edit" 
+               href="{% url 'profile_settings' %}" 
+               class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent border-2 border-gray-600 text-gray-300 font-semibold rounded-lg hover:border-white hover:text-white transition-all duration-300">
+                <span>❌</span>
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
 
-<a hx-swap-oob="true" id="email-edit" href="{% url 'profile_settings' %}" class="font-medium text-blue-600 hover:underline">
-    Cancel
-</a>
+<style>
+    /* Form field styling for email form */
+    #{{ form.email.id_for_label }} {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        background: #000000;
+        border: 2px solid #374151;
+        border-radius: 0.75rem;
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    #{{ form.email.id_for_label }}:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    #{{ form.email.id_for_label }}::placeholder {
+        color: #6b7280;
+    }
+
+    /* Error styling */
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .errorlist li {
+        background: #dc2626;
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Smooth animations */
+    * {
+        transition: all 0.3s ease;
+    }
+
+    /* Hover effects */
+    a:hover {
+        text-decoration: none;
+    }
+
+    /* Focus visible for accessibility */
+    button:focus-visible,
+    input:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+</style>
