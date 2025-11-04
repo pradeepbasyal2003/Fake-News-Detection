@@ -1,139 +1,137 @@
+import os
+import re
+import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from gensim.models import KeyedVectors
 from sklearn.metrics.pairwise import cosine_similarity
 from captum.attr import IntegratedGradients
 from nltk.corpus import stopwords
 import nltk
-import numpy as np
-import re
-import os
 
+# -----------------------------
 # Ensure stopwords are available
+# -----------------------------
 try:
     stop_words = set(stopwords.words("english"))
 except LookupError:
     nltk.download("stopwords")
     stop_words = set(stopwords.words("english"))
 
-# ==================== CONFIG ====================
+# -----------------------------
+# Paths & config
+# -----------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "gru_classifier.pth")
 W2V_PATH = os.path.join(BASE_DIR, "GoogleNews-vectors-negative300.bin.gz")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_SEQ_LEN = 100
-EMBEDDING_DIM = 300
-# =================================================
+EMBED_DIM = 300
 
-
-# ============ TOKENIZATION ============
-def tokenize(text):
-    text = text.lower()
-    text = re.sub(r"[^a-z\s]", "", text)
-    return text.split()
-
-
-# ============ MODEL DEFINITION ============
+# -----------------------------
+# GRU model (matches training)
+# -----------------------------
 class GRUClassifier(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
+    def __init__(self, embed_dim, hidden_dim=128, num_layers=1, bidirectional=True):
         super(GRUClassifier, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
-        self.gru = nn.GRU(input_dim, hidden_dim, num_layers,
-                          batch_first=True, bidirectional=True)
-        self.fc = nn.Linear(hidden_dim * 2, output_dim)
+        self.gru = nn.GRU(
+            input_size=embed_dim,
+            hidden_size=hidden_dim,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=bidirectional
+        )
+        self.dropout = nn.Dropout(0.5)
+        self.fc = nn.Linear(hidden_dim * (2 if bidirectional else 1), 1)
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_dim).to(x.device)
-        out, _ = self.gru(x, h0)
-        out = out[:, -1, :]
-        out = self.fc(out)
-        return out
-
-
-# ============ LOAD MODEL & W2V ============
-print("Loading GRU model and word vectors...")
-w2v = KeyedVectors.load_word2vec_format(W2V_PATH, binary=True)
-model = GRUClassifier(input_dim=EMBEDDING_DIM, hidden_dim=128,
-                      num_layers=1, output_dim=1).to(device)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-model.eval()
-print("Model loaded successfully.")
-
-
-# ============ TEXT TO VECTOR ============
-def text_to_vectors(text, keyed_vectors, max_len):
-    tokens = tokenize(text)
-    vectors = []
-    for token in tokens[:max_len]:
-        if token in keyed_vectors:
-            vec = torch.tensor(keyed_vectors[token][:EMBEDDING_DIM], dtype=torch.float32)
+        gru_out, h_n = self.gru(x)
+        if self.gru.bidirectional:
+            h_n = torch.cat((h_n[-2,:,:], h_n[-1,:,:]), dim=1)
         else:
-            vec = torch.zeros(EMBEDDING_DIM, dtype=torch.float32)
-        vectors.append(vec)
+            h_n = h_n[-1,:,:]
+        h_n = self.dropout(h_n)
+        logits = self.fc(h_n)
+        return torch.sigmoid(logits)
 
+# -----------------------------
+# Preload models
+# -----------------------------
+print("Loading Word2Vec and GRU model...")
+_w2v = KeyedVectors.load_word2vec_format(W2V_PATH, binary=True)
+_model = GRUClassifier(EMBED_DIM)
+_state_dict = torch.load(MODEL_PATH, map_location=device)
+_model.load_state_dict(_state_dict)
+_model.eval()
+_model.to(device)
+print(" Models loaded successfully")
+
+# -----------------------------
+# Text preprocessing
+# -----------------------------
+def preprocess_text(text):
+    text = re.sub(r"[^a-zA-Z]", " ", text).lower()
+    tokens = [t for t in text.split() if t not in stop_words]
+    return tokens
+
+def text_to_tensor(tokens, max_len=MAX_SEQ_LEN):
+    vectors = [_w2v[t] if t in _w2v else np.zeros(EMBED_DIM) for t in tokens]
+    vectors = vectors[:max_len]
     while len(vectors) < max_len:
-        vectors.append(torch.zeros(EMBEDDING_DIM, dtype=torch.float32))
+        vectors.append(np.zeros(EMBED_DIM))
+    return torch.tensor([vectors], dtype=torch.float32).to(device)
 
-    return torch.stack(vectors).unsqueeze(0).to(device), tokens[:max_len]
+# -----------------------------
+# Cosine similarity
+# -----------------------------
+def compute_similarity(title, content):
+    t_vec = text_to_tensor(preprocess_text(title))
+    b_vec = text_to_tensor(preprocess_text(content))
+    t_mean = t_vec.mean(dim=1).cpu().numpy()
+    b_mean = b_vec.mean(dim=1).cpu().numpy()
+    return float(cosine_similarity(t_mean, b_mean)[0][0])
 
-
-# ============ COSINE SIMILARITY ============
-def compute_similarity(title, body):
-    title_vec, _ = text_to_vectors(title, w2v, MAX_SEQ_LEN)
-    body_vec, _ = text_to_vectors(body, w2v, MAX_SEQ_LEN)
-    title_mean = title_vec.mean(dim=1).cpu().numpy()
-    body_mean = body_vec.mean(dim=1).cpu().numpy()
-    return float(cosine_similarity(title_mean, body_mean)[0][0])
-
-
-# ============ INTEGRATED GRADIENTS ============
-def get_influential_words_IG(model, text, keyed_vectors, max_len, top_k=10):
-    tokens = [t for t in text.lower().split() if t.isalpha() and t not in stop_words]
-
-    vectors = np.array([
-        keyed_vectors[t] if t in keyed_vectors else np.zeros(keyed_vectors.vector_size)
-        for t in tokens
-    ])
-
-    if len(vectors) < max_len:
-        pad_len = max_len - len(vectors)
-        vectors = np.vstack([vectors, np.zeros((pad_len, keyed_vectors.vector_size))])
+# -----------------------------
+# Integrated Gradients
+# -----------------------------
+def get_influential_words_IG(text, top_k=10):
+    tokens = preprocess_text(text)
+    vectors = np.array([_w2v[t] if t in _w2v else np.zeros(EMBED_DIM) for t in tokens])
+    if len(vectors) < MAX_SEQ_LEN:
+        pad_len = MAX_SEQ_LEN - len(vectors)
+        vectors = np.vstack([vectors, np.zeros((pad_len, EMBED_DIM))])
     else:
-        vectors = vectors[:max_len]
+        vectors = vectors[:MAX_SEQ_LEN]
 
     sequence = torch.tensor(vectors, dtype=torch.float32).unsqueeze(0).to(device)
-
-    ig = IntegratedGradients(model)
-    attributions, _ = ig.attribute(
-        sequence,
-        baselines=torch.zeros_like(sequence),
-        return_convergence_delta=True
-    )
-
+    ig = IntegratedGradients(_model)
+    attributions, _ = ig.attribute(sequence, baselines=torch.zeros_like(sequence), return_convergence_delta=True)
     word_importance = attributions.abs().sum(dim=2).squeeze(0).detach().cpu().numpy()
     word_importance = (word_importance - word_importance.min()) / (word_importance.max() - word_importance.min() + 1e-8)
-
     top_indices = np.argsort(word_importance)[-top_k:][::-1]
-    influential_words = [tokens[i] for i in top_indices if i < len(tokens)]
-    return influential_words
+    return [tokens[i] for i in top_indices if i < len(tokens)]
 
+# -----------------------------
+# Predict function
+# -----------------------------
+def predict(title, content):
+    combined = f"{title} {content}"
+    tokens = preprocess_text(combined)
+    x = text_to_tensor(tokens)
 
-# ============ PREDICT FUNCTION ============
-def predict_news(title, body):
-    combined = title + " " + body
-    sequence, _ = text_to_vectors(combined, w2v, MAX_SEQ_LEN)
-
-    model.eval()
     with torch.no_grad():
-        output = model(sequence)
-        prob = torch.sigmoid(output).item()
+        prob = _model(x).item()
 
-    label = "Real" if prob < 0.5 else "Fake"
-    confidence = prob if label == "Fake" else 1 - prob
+    # Confidence corresponds to predicted label
+    if prob > 0.5:
+        label = "REAL"
+        confidence = prob
+    else:
+        label = "FAKE"
+        confidence = 1 - prob
 
+    # Human-readable verdict
     if confidence > 0.8:
         verdict = f"Most likely {label}"
     elif confidence > 0.7:
@@ -141,13 +139,21 @@ def predict_news(title, body):
     else:
         verdict = f"Uncertain ({label})"
 
-    similarity = compute_similarity(title, body)
-    top_words = get_influential_words_IG(model, combined, w2v, MAX_SEQ_LEN, top_k=10)
+    similarity = compute_similarity(title, content)
+    top_words = get_influential_words_IG(combined)
 
     return {
         "prediction": label,
         "confidence": round(confidence, 2),
         "verdict": verdict,
         "similarity": round(similarity, 2),
-        "top_words": top_words,
+        "top_words": top_words
     }
+
+# -----------------------------
+# Optional test run
+# -----------------------------
+if __name__ == "__main__":
+    example = predict("Scientists confirm hot water prevents COVID", 
+                      "Drink hot water every 15 minutes...")
+    print(example)

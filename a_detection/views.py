@@ -13,17 +13,17 @@ from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 import string
 from .utils import preprocess_text
-from .model_loader import predict_news
+from .model_loader import predict
 # Custom stopwords for more relevant keywords
-CUSTOM_STOPWORDS = set([
-    'said', 'will', 'one', 'two', 'new', 'also', 'can', 'may', 'like', 'just', 'get', 'make', 'time', 'year', 'years', 'day', 'days', 'week', 'weeks', 'month', 'months',
-    'us', 'mr', 'mrs', 'ms', 'could', 'would', 'should', 'must', 'might', 'still', 'even', 'many', 'much', 'every', 'news', 'report', 'reports', 'say', 'says', 'see', 
-    'seen', 'use', 'used', 'using', 'however', 'according', 'including', 'since', 'among', 'within', 'without', 'around', 'across', 'per', 'via', 'due', 'yet', 'another', 
-    'others', 'back', 'ago', 'first', 'last', 'next', 'over', 'under', 'before', 'after', 'between', 'through', 'about', 'against', 'above', 'below', 'off', 'on', 'in', 
-    'at', 'by', 'to', 'from', 'with', 'for', 'of', 'and', 'or', 'but', 'if', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'it', 'its', 'this', 'that', 'these',
-    'those', 'he', 'she', 'they', 'them', 'his', 'her', 'their', 'our', 'your', 'my', 'me', 'you', 'we', 'do', 'does', 'did', 'so', 'no', 'not', 'than', 'then', 'there',
-    'here', 'out', 'up', 'down', 'into', 'over', 'again', 'once', 'because', 'while', 'where', 'when', 'who', 'whom', 'which', 'what', 'how', 'why', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'only', 'own', 'same', 'too', 'very', 's', 't', 'can', 'will', 'don', 'should', 'now'
-])
+# CUSTOM_STOPWORDS = set([
+#     'said', 'will', 'one', 'two', 'new', 'also', 'can', 'may', 'like', 'just', 'get', 'make', 'time', 'year', 'years', 'day', 'days', 'week', 'weeks', 'month', 'months',
+#     'us', 'mr', 'mrs', 'ms', 'could', 'would', 'should', 'must', 'might', 'still', 'even', 'many', 'much', 'every', 'news', 'report', 'reports', 'say', 'says', 'see', 
+#     'seen', 'use', 'used', 'using', 'however', 'according', 'including', 'since', 'among', 'within', 'without', 'around', 'across', 'per', 'via', 'due', 'yet', 'another', 
+#     'others', 'back', 'ago', 'first', 'last', 'next', 'over', 'under', 'before', 'after', 'between', 'through', 'about', 'against', 'above', 'below', 'off', 'on', 'in', 
+#     'at', 'by', 'to', 'from', 'with', 'for', 'of', 'and', 'or', 'but', 'if', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'it', 'its', 'this', 'that', 'these',
+#     'those', 'he', 'she', 'they', 'them', 'his', 'her', 'their', 'our', 'your', 'my', 'me', 'you', 'we', 'do', 'does', 'did', 'so', 'no', 'not', 'than', 'then', 'there',
+#     'here', 'out', 'up', 'down', 'into', 'over', 'again', 'once', 'because', 'while', 'where', 'when', 'who', 'whom', 'which', 'what', 'how', 'why', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'only', 'own', 'same', 'too', 'very', 's', 't', 'can', 'will', 'don', 'should', 'now'
+# ])
 
 # Load models and vectorizer once
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -37,13 +37,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # word2vec_model = gensim.models.Word2Vec.load(WORD2VEC_PATH)
 # explainer_model = joblib.load(EXPLAINER_MODEL_PATH)
 
-def document_vector(doc, model):
-    """Create a document vector by averaging word vectors."""
-    processed_tokens = preprocess_text(doc)
-    doc_vectors = [model.wv[word] for word in processed_tokens if word in model.wv.key_to_index]
-    if not doc_vectors:
-        return np.zeros(model.vector_size)
-    return np.mean(doc_vectors, axis=0)
+# def document_vector(doc, model):
+#     """Create a document vector by averaging word vectors."""
+#     processed_tokens = preprocess_text(doc)
+#     doc_vectors = [model.wv[word] for word in processed_tokens if word in model.wv.key_to_index]
+#     if not doc_vectors:
+#         return np.zeros(model.vector_size)
+#     return np.mean(doc_vectors, axis=0)
 
 def home_view(request):
     return render(request,'home.html')
@@ -60,8 +60,15 @@ def predict_fake_news(request):
             title = data.get('title', '')
             body = data.get('body', '')
 
-            result = predict_news(title, body)
+            result = predict(title, body)
             print(result)
+            
+            NewsArticle.objects.create(
+                title = title,
+                content = body,
+                result = "REAL" if result["prediction"] == "REAL" else "FAKE",
+                confidence_score = result["confidence"],
+            )
             return JsonResponse(result)
         #     # --- Prediction using Word2Vec model ---
         #     content = title + ' ' + body
@@ -82,12 +89,6 @@ def predict_fake_news(request):
         #         similarity_score = cosine_similarity(title_vec, text_vec)[0][0]
         #         result['similarity'] = f"{similarity_score:.2f} ({similarity_score*100:.0f}% confident match)"
 
-        #     NewsArticle.objects.create(
-        #         title = title,
-        #         content = body,
-        #         result = "REAL" if pred == 1 else "FAKE",
-        #         confidence_score = confidence,
-        #     )
 
         #     # --- Suspicious words using TF-IDF Explainer Model ---
         #     # This is the correct way to find words that influenced the decision.
@@ -140,14 +141,3 @@ def submit_feedback(request):
 
     return render(request, 'feedback_form.html', {'form': form})
 
-
-# class PredictView(APIView):
-#     def post(self, request):
-#         title = request.data.get("title", "")
-#         content = request.data.get("content", "")
-
-#         if not title and not content:
-#             return Response({"error": "Please provide title or content"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         result = predict(title, content)
-#         return Response(result)

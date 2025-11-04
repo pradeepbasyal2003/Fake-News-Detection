@@ -8,25 +8,23 @@ from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# -----------------------------
+
 # Reproducibility & device
-# -----------------------------
 SEED = 42
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# -----------------------------
-# CSV paths (LOCAL)
-# -----------------------------
-BASE = "./data"
-TRAIN_CSV = os.path.join(BASE, "train.csv")
-VAL_CSV   = os.path.join(BASE, "validation.csv")
-TEST_CSV  = os.path.join(BASE, "test.csv")
 
-# -----------------------------
+# CSV paths (LOCAL)
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+TRAIN_CSV = os.path.join(BASE_DIR/dataset, "train.csv")
+VAL_CSV   = os.path.join(BASE_DIR/dataset, "validation.csv")
+TEST_CSV  = os.path.join(BASE_DIR/dataset, "test.csv")
+
+
 # Load CSVs
-# -----------------------------
 def load_csv(path):
+    """Load a CSV, clean text columns, and return combined text with labels."""
     df = pd.read_csv(path)
     for col in ["title","text"]:
         if col in df.columns:
@@ -42,29 +40,27 @@ val_df   = load_csv(VAL_CSV)
 test_df  = load_csv(TEST_CSV)
 print(train_df.head())
 
-# -----------------------------
+
 # Tokenizer
-# -----------------------------
 TOKEN_PATTERN = re.compile(r"[A-Za-z']+")
 
 def tokenize(s: str):
+    """Tokenize a string into lowercase alphabetic words and apostrophes."""
     return [w.lower() for w in TOKEN_PATTERN.findall(s)]
 
-# -----------------------------
+
 # Load Word2Vec (LOCAL)
-# -----------------------------
 W2V_PATH = "./embeddings/GoogleNews-vectors-negative300.bin.gz"
 
 print("Loading Word2Vec ...")
 w2v = KeyedVectors.load_word2vec_format(W2V_PATH, binary=True)
 EMBED_DIM = w2v.vector_size
 
-# -----------------------------
 # Convert text to embedding sequences
-# -----------------------------
 MAX_SEQ_LEN = 100
 
 def text_to_sequence(text, keyed_vectors, max_len):
+    """Convert text to a sequence of word vectors (padded/truncated to max_len)."""
     tokens = tokenize(text)[:max_len]
     vectors = []
     for token in tokens:
@@ -78,6 +74,7 @@ def text_to_sequence(text, keyed_vectors, max_len):
         return torch.zeros((1, keyed_vectors.vector_size), dtype=torch.float32)
 
 def batch_sequences(texts, keyed_vectors, max_len):
+    """Batch-convert a list/series of texts into a padded tensor of embeddings."""
     sequences = [text_to_sequence(text, keyed_vectors, max_len) for text in texts]
     padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0.0)
     return padded_sequences
@@ -93,9 +90,8 @@ y_test = torch.tensor(test_df["label"].values, dtype=torch.float32)
 
 print(f"Sequence shapes: {X_train.shape}, {X_val.shape}, {X_test.shape}")
 
-# -----------------------------
+
 # DataLoaders
-# -----------------------------
 BATCH_SIZE = 128
 
 train_ds = TensorDataset(X_train, y_train)
@@ -106,10 +102,10 @@ train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
 val_loader   = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 test_loader  = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False)
 
-# -----------------------------
+
 # GRU Classifier
-# -----------------------------
 class GRUClassifier(nn.Module):
+    """Bidirectional GRU-based binary classifier over precomputed word embeddings."""
     def __init__(self, embed_dim, hidden_dim=128, num_layers=1, bidirectional=True):
         super().__init__()
         self.gru = nn.GRU(
@@ -123,6 +119,7 @@ class GRUClassifier(nn.Module):
         self.fc = nn.Linear(hidden_dim * (2 if bidirectional else 1), 1)
 
     def forward(self, x):
+        """Encode a sequence batch with GRU and return logits for binary classification."""
         gru_out, h_n = self.gru(x)
         if self.gru.bidirectional:
             h_n = torch.cat((h_n[-2,:,:], h_n[-1,:,:]), dim=1)
@@ -134,9 +131,7 @@ class GRUClassifier(nn.Module):
 
 model = GRUClassifier(EMBED_DIM).to(device)
 
-# -----------------------------
 # Training setup
-# -----------------------------
 LR = 1e-3
 EPOCHS = 50
 patience = 5
@@ -145,6 +140,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=1e-4)
 criterion = nn.BCEWithLogitsLoss()
 
 def evaluate(loader):
+    """Evaluate model on a DataLoader and compute accuracy, precision, recall, F1."""
     model.eval()
     preds, labels = [], []
     with torch.no_grad():
@@ -159,9 +155,8 @@ def evaluate(loader):
     p, r, f1, _ = precision_recall_fscore_support(labels, preds, average="binary", zero_division=0)
     return acc, p, r, f1
 
-# -------------------------------------------------------
-# ✅ MAIN RUN BLOCK (Required for VS Code)
-# -------------------------------------------------------
+
+# MAIN RUN BLOCK (Required for VS Code)
 if __name__ == "__main__":
 
     train_losses, val_losses = [], []
@@ -222,4 +217,4 @@ if __name__ == "__main__":
     print(test_acc, test_p, test_r, test_f1)
 
     torch.save(model.state_dict(), "gru_classifier.pth")
-    print("✅ Model saved!")
+    print(" Model saved!")
