@@ -2,3 +2,4 @@ venv/
 GoogleNews-vectors-negative300.bin.gz
 gru_classifier.pth
 dataset/train.csv
+.env
