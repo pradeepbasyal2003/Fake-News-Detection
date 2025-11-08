@@ -75,11 +75,29 @@
                     <!-- Results will be displayed here -->
                 </div>
 
-                <!-- Feedback Button -->
-                <div class="mt-6 text-center">
+                <!-- News Recommendations Section -->
+                <div id="newsRecommendations" class="mt-6 hidden">
+                    <div class="bg-gray-800 rounded-lg p-5 border border-gray-700">
+                        <h3 class="text-lg font-semibold mb-4 text-white">Real News Recommendations</h3>
+                        <div id="recommendationsList" class="space-y-4">
+                            <!-- Recommendations will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                    <button 
+                        type="button"
+                        id="getRecommendationsBtn"
+                        class="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span>📰</span>
+                        <span>Get Real News Recommendations</span>
+                    </button>
                     <a 
                         href="{% url 'submit_feedback' %}" 
-                        class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-transparent border border-gray-600 text-gray-400 text-sm rounded-lg hover:border-gray-500 hover:text-gray-300 transition-colors"
+                        class="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 bg-transparent border border-gray-600 text-gray-400 text-sm rounded-lg hover:border-gray-500 hover:text-gray-300 transition-colors"
                     >
                         Share feedback
                     </a>
@@ -106,6 +124,118 @@
 </div>
 
 <script src="{%static 'css/app.js' %}"></script>
+
+<script>
+// Handle Get Real News Recommendations button click
+document.getElementById('getRecommendationsBtn').addEventListener('click', async function() {
+    const titleInput = document.getElementById('title');
+    const title = titleInput.value.trim();
+    const recommendationsDiv = document.getElementById('newsRecommendations');
+    const recommendationsList = document.getElementById('recommendationsList');
+    const button = this;
+    
+    // Validate title
+    if (!title) {
+        alert('Please enter an article title first to get recommendations.');
+        titleInput.focus();
+        return;
+    }
+    
+    // Disable button and show loading state
+    button.disabled = true;
+    button.innerHTML = '<span>⏳</span><span>Loading recommendations...</span>';
+    
+    // Show recommendations section with loading state
+    recommendationsDiv.classList.remove('hidden');
+    recommendationsList.innerHTML = '<div class="text-center py-4"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div><p class="mt-2 text-gray-400 text-sm">Fetching real news recommendations...</p></div>';
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+    
+    try {
+        const response = await fetch('/get-news-recommendations/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken || ''
+            },
+            body: JSON.stringify({ title: title })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Display recommendations
+            if (data.articles && data.articles.length > 0) {
+                let html = '';
+                data.articles.forEach((article, index) => {
+                    html += `
+                        <div class="bg-gray-900 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1">
+                                    <h4 class="text-base font-semibold text-white mb-2">
+                                        <a href="${article.url || '#'}" target="_blank" rel="noopener noreferrer" class="hover:text-blue-400 transition-colors">
+                                            ${article.title || 'No title'}
+                                        </a>
+                                    </h4>
+                                    ${article.description ? `<p class="text-sm text-gray-400 mb-2 line-clamp-2">${article.description}</p>` : ''}
+                                    ${article.source ? `<p class="text-xs text-gray-500">Source: ${article.source}</p>` : ''}
+                                </div>
+                                <a 
+                                    href="${article.url || '#'}" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    class="flex-shrink-0 text-blue-400 hover:text-blue-300 text-sm font-medium"
+                                >
+                                    Read →
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                recommendationsList.innerHTML = html;
+            } else {
+                recommendationsList.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">No recommendations found. Try a different title.</div>';
+            }
+        } else {
+            // Handle error
+            recommendationsList.innerHTML = `
+                <div class="text-center py-4">
+                    <p class="text-red-400 text-sm font-medium mb-1">Error loading recommendations</p>
+                    <p class="text-gray-500 text-xs">${data.message || 'Please try again later.'}</p>
+                </div>
+            `;
+        }
+    } catch (err) {
+        console.error('Error fetching recommendations:', err);
+        recommendationsList.innerHTML = `
+            <div class="text-center py-4">
+                <p class="text-red-400 text-sm font-medium mb-1">Connection error</p>
+                <p class="text-gray-500 text-xs">Check your connection and try again.</p>
+            </div>
+        `;
+    } finally {
+        // Re-enable button
+        button.disabled = false;
+        button.innerHTML = '<span>📰</span><span>Get Real News Recommendations</span>';
+    }
+});
+</script>
 
 <style>
     /* Custom scrollbar for textarea */
