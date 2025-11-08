@@ -222,6 +222,7 @@ def get_boarder_query(title:str):
     """
     Returns a boarder query after filtering unnecessary words.
     """
+    ##"python -m spacy download en_core_web_sm" use this command to download it first before running. 
     nlp = spacy.load("en_core_web_sm")
     doc = nlp(title)
 
